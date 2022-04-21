@@ -1,99 +1,51 @@
 #include "main.h"
-/**
- * print_format - format controller
- * @format: the base string
- * @valist : hold the argument passed
- * Return: total size of the argument with the total size of the base string
- */
-int print_format(const char *format, va_list valist)
-{
-	unsigned int count = 0;
-	int result;
-	int i = 0;
-
-	for (i = 0; format[i]; i++)
-	{
-		if (format[i] == '%')
-		{
-			result = formatchecker(format, valist, &i);
-			if (result == -1)
-			{
-				return (-1);
-			}
-		count += result;
-		continue;
-		}
-	print_out(format[i]);
-	count++;
-	}
-	return (count);
-}
 
 /**
- * formatchecker - checks the format and print the character
- * @str: the base string
- * @valist: number of arguments passed
- * @j: address of %
- * Return: total number of printed charcter inside the argument
- */
-int formatchecker(const char *str, va_list valist, int *j)
-{
-	int i;
-	int p;
-	int formats;
-
-	Data checker[] = {{'c', print_char},
-			  {'s', print_string},
-			  {'d', print_int},
-			  {'i', print_int},
-			  {'b', print_binary},
-			  {'u', print_unsigned},
-			  {'o', print_octal},
-			  {'x', print_hex},
-			  {'X', print_hex_big},
-			  {'S', print_bigS},
-			  {'p', print_address},
-			  {'R', print_rot13}};
-	*j = *j + 1;
-	if (str[*j] == '\0')
-	{
-		return (-1);
-	}
-	if (str[*j] == '%')
-	{
-		print_out('%');
-		return (1);
-	}
-	formats = sizeof(checker) / sizeof(checker[0]);
-	for (i = 0; i < formats; i++)
-	{
-		if (str[*j] == checker[i].l)
-		{
-			p = checker[i].ptr(valist);
-			return (p);
-		}
-	}
-	print_out('%'), print_out(str[*j]);
-	return (2);
-}
-
-/**
- * _printf - prints anything
- * @format: list of argument type passed
- * Return: number of character printed
+ * _printf - formatted output conversion and print data.
+ * @format: input string.
+ *
+ * Return: number of chars printed.
  */
 int _printf(const char *format, ...)
 {
-	va_list ag;
-	int f;
+	unsigned int i = 0, len = 0, ibuf = 0;
+	va_list arguments;
+	int (*function)(va_list, char *, unsigned int);
+	char *buffer;
 
-	if (format == NULL)
-	{
+	va_start(arguments, format), buffer = malloc(sizeof(char) * 1024);
+	if (!format || !buffer || (format[i] == '%' && !format[i + 1]))
 		return (-1);
+	if (!format[i])
+		return (0);
+	for (i = 0; format && format[i]; i++)
+	{
+		if (format[i] == '%')
+		{
+			if (format[i + 1] == '\0')
+			{	print_buf(buffer, ibuf), free(buffer), va_end(arguments);
+				return (-1);
+			}
+			else
+			{	function = get_print_func(format, i + 1);
+				if (function == NULL)
+				{
+					if (format[i + 1] == ' ' && !format[i + 2])
+						return (-1);
+					handl_buf(buffer, format[i], ibuf), len++, i--;
+				}
+				else
+				{
+					len += function(arguments, buffer, ibuf);
+					i += ev_print_func(format, i + 1);
+				}
+			} i++;
+		}
+		else
+			handl_buf(buffer, format[i], ibuf), len++;
+		for (ibuf = len; ibuf > 1024; ibuf -= 1024)
+			;
 	}
-	va_start(ag, format);
-	f = print_format(format, ag);
-	print_out(-1);
-	va_end(ag);
-	return (f);
+	print_buf(buffer, ibuf), free(buffer), va_end(arguments);
+	return (len);
 }
